@@ -1,0 +1,28 @@
+# Vercel ignore file
+# Exclude files and folders from deployment
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+myenv/
+.git/
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+render.yaml
+run_app.bat
+test_*.py
+*.txt
+data.csv
+uploads/
+.qodo/
+brain/
+task.md
+implementation_plan.md
+walkthrough.md

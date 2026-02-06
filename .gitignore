@@ -1,0 +1,63 @@
+# Environment Variables
+.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual Environments
+venv/
+.venv/
+myenv/
+env/
+
+# Uploads
+uploads/
+!uploads/.gitkeep
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Test files
+test_*.py
+
+# Data files
+data.csv
+output.xlsx
+final_res.json
+
+# Documentation
+*.md
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Deployment
+render.yaml
+run_app.bat
+
+# Qodo
+.qodo/
+brain/
+task.md
+implementation_plan.md
+walkthrough.md

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Card Scanner AI</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="ai-card">
+
+            <div class="logo-header">
+                <img src="/static/Logotechxl.png?v=1.2" alt="Techxl Logo" class="app-logo">
+            </div>
+            <p class="subtitle">Intelligent Business Card Processing</p>
+
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <div style="text-align: center; margin-bottom: 32px;">
+                <a href="/view_data" class="action-btn record-btn">📂 Saved Records</a>
+            </div>
+
+            {% if not data %}
+            <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                <div class="drop-zone" id="dropZone">
+                    <span class="drop-zone-icon">✨</span>
+                    <div style="font-weight: 600; margin-bottom: 8px;">Upload Card Image</div>
+                    <div style="font-size: 0.85rem; color: var(--text-dim);">Drag & drop or click to browse</div>
+                    <input type="file" name="image" id="image" accept="image/*" required style="display: none;">
+                </div>
+
+                <div class="preview-container" id="previewContainer" style="display: none;">
+                    <img id="previewImage" class="preview-image" src="" alt="Preview">
+                    <div id="fileName" style="margin-top: 10px; font-size: 0.8rem; color: var(--text-dim);"></div>
+                </div>
+
+                <button type="submit" class="scan-btn" id="scanBtn" style="display: none; width: 100%;">⚡
+                    Proceed</button>
+            </form>
+            {% endif %}
+
+            {% if data %}
+            <div class="result-section">
+                <h2 style="font-size: 1.25rem; margin-bottom: 8px;">Extracted Insights</h2>
+                <p style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 24px;">Refine the details below</p>
+
+                <form action="/save" method="POST">
+                    <table class="result-table">
+                        <tr>
+                            <td>Name</td>
+                            <td><input type="text" name="Name" value="{{ data.Name }}" class="edit-input"></td>
+                        </tr>
+                        <tr>
+                            <td>Job Title</td>
+                            <td><input type="text" name="Job Title" value="{{ data['Job Title'] }}" class="edit-input">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Company</td>
+                            <td><input type="text" name="Company" value="{{ data.Company }}" class="edit-input"></td>
+                        </tr>
+                        <tr>
+                            <td>Email</td>
+                            <td><input type="text" name="Email" value="{{ data.Email }}" class="edit-input"></td>
+                        </tr>
+                        <tr>
+                            <td>Phone</td>
+                            <td><input type="text" name="Phone" value="{{ data.Phone }}" class="edit-input"></td>
+                        </tr>
+                        <tr>
+                            <td>Address</td>
+                            <td><input type="text" name="Address" value="{{ data.Address }}" class="edit-input"></td>
+                        </tr>
+                        <tr>
+                            <td>Website</td>
+                            <td><input type="text" name="Website" value="{{ data.Website }}" class="edit-input"></td>
+                        </tr>
+                    </table>
+
+                    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 32px;">
+                        <button type="submit" class="save-btn">💾 Securely Save</button>
+                        <a href="/" class="reset-btn">🔄 Scan New Card</a>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('image');
+        const previewContainer = document.getElementById('previewContainer');
+        const previewImage = document.getElementById('previewImage');
+        const fileName = document.getElementById('fileName');
+        const scanBtn = document.getElementById('scanBtn');
+
+        dropZone?.addEventListener('click', () => fileInput.click());
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone?.addEventListener(eventName, e => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone?.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone?.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+        });
+
+        dropZone?.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFiles(files);
+            }
+        });
+
+        fileInput?.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        function handleFiles(files) {
+            if (files.length > 0) {
+                const file = files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImage.src = e.target.result;
+                    fileName.textContent = file.name;
+                    previewContainer.style.display = 'block';
+                    scanBtn.style.display = 'block';
+                    dropZone.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        const uploadForm = document.getElementById('uploadForm');
+        uploadForm?.addEventListener('submit', () => {
+            scanBtn.innerHTML = '<span class="spinner"></span> Working...';
+            scanBtn.style.opacity = '0.7';
+            scanBtn.style.cursor = 'not-allowed';
+        });
+    </script>
+
+</body>
+
+</html>

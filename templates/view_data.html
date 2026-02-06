@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saved Records - Techxl</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .view-container {
+            width: 100%;
+            max-width: 1000px;
+            padding: 40px 20px;
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .records-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .record-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 24px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .record-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent);
+        }
+
+        .record-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 4px;
+            color: var(--text-main);
+        }
+
+        .record-card .title {
+            font-size: 0.85rem;
+            color: var(--accent);
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .detail-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+
+        .detail-icon {
+            width: 18px;
+            color: var(--accent);
+        }
+
+        .card-footer {
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.8rem;
+            border-radius: 10px;
+        }
+
+        .btn-delete {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-delete:hover {
+            background: var(--error);
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="view-container">
+        <div class="header-actions">
+            <div>
+                <h1 style="margin-bottom: 4px;">Saved Insights</h1>
+                <p style="color: var(--text-dim);">Historical business card records</p>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <a href="/export_excel" class="action-btn" style="background: var(--success);">📊 Export Excel</a>
+                <a href="/" class="action-btn" style="background: rgba(255,255,255,0.1); box-shadow: none;">➕ New
+                    Scan</a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert" style="margin-bottom: 30px;">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <div class="records-grid">
+            {% for record in records %}
+            <div class="record-card">
+                <h3>{{ record.Name }}</h3>
+                <div class="title">{{ record['Job Title'] }} @ {{ record.Company }}</div>
+
+                <div class="detail-row">
+                    <span>📧</span> <span>{{ record.Email }}</span>
+                </div>
+                <div class="detail-row">
+                    <span>📞</span> <span>{{ record.Phone }}</span>
+                </div>
+                <div class="detail-row">
+                    <span>🌐</span> <span>{{ record.Website }}</span>
+                </div>
+                <div class="detail-row" style="margin-top: 8px; font-size: 0.8rem;">
+                    <span>📍</span> <span>{{ record.Address }}</span>
+                </div>
+
+                <div class="card-footer">
+                    <span style="font-size: 0.75rem; color: var(--text-dim);">{{ record.Timestamp }}</span>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-sm btn-edit" data-record='{{ record | tojson }}'
+                            onclick='openEditModal(this)'>Edit</button>
+                        <!-- Using confirm for delete since we don't have the full modal logic here but want safety -->
+                        <a href="/delete/{{ record._id }}" class="btn-sm btn-delete"
+                            onclick="return confirm('Archive this record?')">Delete</a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div style="grid-column: 1/-1; text-align: center; padding: 100px; color: var(--text-dim);">
+                <div style="font-size: 4rem; margin-bottom: 20px;">📭</div>
+                <p>No records found in the database.</p>
+                <a href="/" class="scan-btn" style="margin-top: 20px;">Start Scanning</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeEditModal()">&times;</span>
+            <h2>Edit Record</h2>
+            <form id="editForm" method="POST" class="modal-form">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" name="Name" id="editName" required>
+                </div>
+                <div class="form-group">
+                    <label>Job Title</label>
+                    <input type="text" name="Job Title" id="editJobTitle">
+                </div>
+                <div class="form-group">
+                    <label>Company</label>
+                    <input type="text" name="Company" id="editCompany">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="Email" id="editEmail">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" name="Phone" id="editPhone">
+                </div>
+                <div class="form-group">
+                    <label>Website</label>
+                    <input type="text" name="Website" id="editWebsite">
+                </div>
+                <div class="form-group">
+                    <label>Address</label>
+                    <input type="text" name="Address" id="editAddress">
+                </div>
+                <button type="submit" class="save-btn" style="width: 100%; margin-top: 10px;">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const modal = document.getElementById('editModal');
+        const editForm = document.getElementById('editForm');
+
+        function openEditModal(element) {
+            const record = JSON.parse(element.getAttribute('data-record'));
+
+            document.getElementById('editName').value = record.Name || '';
+            document.getElementById('editJobTitle').value = record['Job Title'] || '';
+            document.getElementById('editCompany').value = record.Company || '';
+            document.getElementById('editEmail').value = record.Email || '';
+            document.getElementById('editPhone').value = record.Phone || '';
+            document.getElementById('editWebsite').value = record.Website || '';
+            document.getElementById('editAddress').value = record.Address || '';
+
+            // Set form action with record ID
+            editForm.action = `/edit/${record._id}`;
+
+            modal.style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            modal.style.display = 'none';
+        }
+
+        // Close on outside click
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                closeEditModal();
+            }
+        }
+    </script>
+</body>
+
+</html>
