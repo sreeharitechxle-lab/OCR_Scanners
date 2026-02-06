@@ -28,7 +28,7 @@ UPLOAD_FOLDER = "uploads"
 # ---------------- MONGODB CONFIGURATION ----------------
 # Use environment variable for MongoDB URI (for Render deployment)
 # Falls back to MongoDB Atlas connection for local development
-MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://sreeharitechxle:b3HCLN9Sbk3U72VN@cluster0.zea0bj6.mongodb.net/")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://sreeharitechxle:b3HCLN9Sbk3U72VN@cluster0.zea0bj6.mongodb.net/business_card_db?retryWrites=true&w=majority")
 
 # Initialize MongoDB connection (will be established when needed)
 client = None
