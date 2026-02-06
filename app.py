@@ -27,16 +27,28 @@ UPLOAD_FOLDER = "uploads"
 
 # ---------------- MONGODB CONFIGURATION ----------------
 # Use environment variable for MongoDB URI (for Render deployment)
-# Falls back to localhost for local development
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+# Falls back to MongoDB Atlas connection for local development
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://sreeharitechxle:b3HCLN9Sbk3U72VN@cluster0.zea0bj6.mongodb.net/")
 
-try:
-    client = MongoClient(MONGO_URI)
-    db = client["business_card_db"]
-    collection = db["cards"]
-    logger.info(f"Connected to MongoDB successfully at {MONGO_URI[:20]}...")
-except Exception as e:
-    logger.error(f"Failed to connect to MongoDB: {e}")
+# Initialize MongoDB connection (will be established when needed)
+client = None
+db = None
+collection = None
+
+def get_db_collection():
+    """Get MongoDB collection with lazy initialization"""
+    global client, db, collection
+    if collection is None:
+        try:
+            client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+            db = client["business_card_db"]
+            collection = db["cards"]
+            logger.info(f"Connected to MongoDB successfully at {MONGO_URI[:20]}...")
+        except Exception as e:
+            logger.error(f"Failed to connect to MongoDB: {e}")
+            # Don't crash the app - continue without database
+            collection = None
+    return collection
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -300,34 +312,52 @@ def save_data():
             "Timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
         }
 
-        # Save to MongoDB
-        collection.insert_one(data)
+        # Save to MongoDB with error handling
+        collection = get_db_collection()
+        if collection:
+            collection.insert_one(data)
+            flash("Data saved to MongoDB successfully!")
+        else:
+            flash("Database not available - data not saved")
+            logger.warning("Save attempted but database not available")
         
-        flash("Data saved to MongoDB successfully!")
         return render_template("index.html", data=None)
         
     except Exception as e:
+        logger.error(f"Error saving data: {str(e)}")
         flash(f"Error saving data: {str(e)}")
         return render_template("index.html", data=None)
 
 @app.route("/view_data")
 def view_data():
     try:
-        # Fetch all records from MongoDB
-        records = list(collection.find())
-        # Convert ObjectId to string for JSON serialization in template
-        for r in records:
-            r['_id'] = str(r['_id'])
+        # Fetch all records from MongoDB with error handling
+        collection = get_db_collection()
+        if collection:
+            records = list(collection.find())
+            # Convert ObjectId to string for JSON serialization in template
+            for r in records:
+                r['_id'] = str(r['_id'])
+        else:
+            records = []
+            flash("Database not available")
+        
         return render_template("view_data.html", records=records)
     except Exception as e:
+        logger.error(f"Error fetching data: {str(e)}")
         flash(f"Error fetching data: {str(e)}")
-        return render_template("index.html", data=None)
+        return render_template("view_data.html", records=[])
 
 @app.route("/export_excel")
 def export_excel():
     try:
-        # Fetch data
-        records = list(collection.find())
+        # Fetch data with error handling
+        collection = get_db_collection()
+        if collection:
+            records = list(collection.find())
+        else:
+            flash("Database not available")
+            return render_template("view_data.html", records=[])
         
         if not records:
              flash("No data to export")
@@ -351,7 +381,9 @@ def export_excel():
     except Exception as e:
         logger.error(f"Export failed: {e}")
         flash(f"Error exporting data: {str(e)}")
-        return render_template("view_data.html", records=list(collection.find()))
+        collection = get_db_collection()
+        records = list(collection.find()) if collection else []
+        return render_template("view_data.html", records=records)
 
 @app.route("/edit/<id>", methods=["POST"])
 def edit_record(id):
@@ -368,9 +400,13 @@ def edit_record(id):
             "Timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
         }
         
-        # Update in MongoDB
-        collection.update_one({"_id": ObjectId(id)}, {"$set": updated_data})
-        flash("Record updated successfully!")
+        # Update in MongoDB with error handling
+        collection = get_db_collection()
+        if collection:
+            collection.update_one({"_id": ObjectId(id)}, {"$set": updated_data})
+            flash("Record updated successfully!")
+        else:
+            flash("Database not available - record not updated")
         
     except Exception as e:
         logger.error(f"Edit failed: {e}")
@@ -381,9 +417,13 @@ def edit_record(id):
 @app.route("/delete/<id>")
 def delete_record(id):
     try:
-        # Delete from MongoDB
-        collection.delete_one({"_id": ObjectId(id)})
-        flash("Record deleted successfully!")
+        # Delete from MongoDB with error handling
+        collection = get_db_collection()
+        if collection:
+            collection.delete_one({"_id": ObjectId(id)})
+            flash("Record deleted successfully!")
+        else:
+            flash("Database not available - record not deleted")
         
     except Exception as e:
         logger.error(f"Delete failed: {e}")
